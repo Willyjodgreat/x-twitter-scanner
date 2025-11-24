@@ -19,8 +19,8 @@ async function scanAndPost() {
     });
 
     const page = await browser.newPage();
-    await page.goto('https://x.com/search?q=web3&f=live', {
-      waitUntil: 'domcontentloaded',
+    await page.goto('https://x.com/search?q=web3&f=live', 
+                    {waitUntil: 'domcontentloaded',
     });
 
     await page.waitForSelector('article div[lang]', { timeout: 5000 });
