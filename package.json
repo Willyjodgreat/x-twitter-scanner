@@ -1,14 +1,15 @@
 {
   "name": "twitter-scan-bot",
   "version": "1.0.0",
-  "description": "A Puppeteer bot to scrape Twitter posts and send to webhook",
-  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "axios": "^1.4.0",
-    "chrome-aws-lambda": "^10.1.0",
-    "puppeteer-core": "^19.11.1"
+    "puppeteer-core": "19.7.5",
+    "chrome-aws-lambda": "10.0.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
