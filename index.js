@@ -2,77 +2,57 @@ const puppeteer = require('puppeteer');
 const axios = require('axios');
 
 const WEBHOOK_URL = 'https://n8n-kkdq.onrender.com/webhook-test/7da40efb-5ac9-487d-8109-f4542bc49ebe';
+
 const KEYWORDS = ['web3', 'ai'];
-const MAX_BATCH_SIZE = 10;
-const DELAY_MS = 10000; // 10 seconds delay between batches
+const MAX_TWEETS = 10;
 
-// Optional proxy support — leave empty if none
-const PROXY = ''; // e.g. 'http://username:password@proxyserver:port'
+let seenTweets = new Set();
 
-const SEEN_TWEETS = new Set();
+async function scrapeAndSend() {
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: '/usr/bin/google-chrome-stable',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function scrapeTweets(page) {
-  return page.
-    
-eval('article', articles =>
-    articles.map(article => {
-      const text = article.innerText;
-      const author = article.querySelector('a[href*="/"] > div > div > span')?.innerText || 'unknown';
-      const link = [...article.querySelectorAll('a')]
-        .map(a => a.href)
-        .find(href => href.includes('/status/'));
-      return { text, author, link };
-    })
-  );
-}
-
-async function sendBatch(batch) {
-  try {
-    await axios.post(WEBHOOK_URL, { tweets: batch });
-    console.log(`Sent batch of ${batch.length} tweets`);
-  } catch (error) {
-console.error('Error sending batch:', error.message);
-  
-
-async function runBot() 
-  const launchOptions = PROXY ?  headless: 'new', args: [`–proxy-server={PROXY}`] } : { headless: 'new' };
-  const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
+  await page.goto('https://x.com/search?q=web3&f=live', { waitUntil: 'networkidle2' });
 
-  await page.goto('https://x.com/search?q=web3&f=live', { waitUntil: 'domcontentloaded' });
+  // Wait for tweets to load
+  await page.waitForSelector('article');
 
-  let tweets = await scrapeTweets(page);
+  const tweets = await page.
+    
+eval('article', (nodes, keywords) => {
+    return nodes.map(node => {
+      const tweetId = node.querySelector('a[href*="/status/"]')?.getAttribute('href')?.split('/').pop();
+      const text = node.innerText || '';
+      const author = node.querySelector('a[href*="/"]')?.getAttribute('href')?.split('/')[1] || '';
+      return { tweetId, text, author };
+    }).filter(t => t.tweetId && keywords.some(k => t.text.toLowerCase().includes(k)));
+  }, KEYWORDS);
 
-  // Filter by keywords and skip seen tweets
-  tweets = tweets.filter(tweet =>
-    tweet.link &&
-    !SEEN_TWEETS.has(tweet.link) &&
-    KEYWORDS.some(keyword => tweet.text.toLowerCase().includes(keyword))
-  );
+  let sentCount = 0;
 
-  // Mark these tweets as seen
-  tweets.forEach(tweet => SEEN_TWEETS.add(tweet.link));
-
-  // Send tweets in batches
-  for (let i = 0; i < tweets.length; i += MAX_BATCH_SIZE) {
-    const batch = tweets.slice(i, i + MAX_BATCH_SIZE).map(t => ({
-      tweetId: t.link.split('/status/')[1],
-      text: t.text,
-      author: t.author
-    }));
-    await sendBatch(batch);
-
-    if (i + MAX_BATCH_SIZE < tweets.length) {
-      console.log(`Waiting ${DELAY_MS / 1000}s before sending next batch...`);
-      await delay(DELAY_MS);
+  for (const tweet of tweets) {
+    if (sentCount >= MAX_TWEETS) break;
+    if (!seenTweets.has(tweet.tweetId)) {
+      try {
+        await axios.post(WEBHOOK_URL, tweet);
+        console.log(`Sent tweet tweet.tweetId`);
+        seenTweets.add(tweet.tweetId);
+        sentCount++;
+       catch (err) 
+        console.error(`Failed sending tweet{tweet.tweetId}:`, err.message);
+      }
     }
   }
+
+  // Wait 10 seconds before closing to mimic delay
+  await new Promise(r => setTimeout(r, 10_000));
 
   await browser.close();
 }
 
-runBot().catch(console.error);
+scrapeAndSend().catch(console.error);
+
