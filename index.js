@@ -15,7 +15,7 @@ async function scanAndPost() {
     browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath,
-      headless: chromium.headless,
+     headless: chromium.headless,
     });
 
     const page = await browser.newPage();
@@ -38,13 +38,10 @@ eval('article div[lang]', nodes =>
         text: tweet.text,
         author: '@unknown',
       });
-
+    }
 
     console.log(`Sent filtered.length tweets.`);
-    return 
-      status: 'ok',
-      sent: filtered.length,
-    ;
+    return  status: 'ok', sent: filtered.length ;
 
    catch (err) 
     console.error("Error during scan:", err.message);
@@ -53,13 +50,11 @@ eval('article div[lang]', nodes =>
     if (browser) await browser.close();
   
 
-// Route to trigger from n8n
 app.post('/scan', async (req, res) => 
   const result = await scanAndPost();
   res.json(result);
 );
 
-// Server start
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => 
   console.log(`Bot listening on{PORT}`);
