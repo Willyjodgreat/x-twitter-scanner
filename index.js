@@ -48,12 +48,16 @@ eval('article div[lang]', nodes =>
 };
 
 try {
-  console.log(`Sent filtered.length tweets.`);
-  return 
+  console.log(`Sent ${filtered.length} tweets.`);
+  return {
     status: 'ok',
     sent: filtered.length
-  ;
- catch (err) 
+  };
+} catch (err) {
+  console.error("Error during scan:", err.message);
+  return { status: "error", message: err.message };
+}
+
   console.error("Error during scan:", err.message);
   return  status: "error", message: err.message ;
  finally 
