@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 
 const KEYWORDS = ['web3', 'ai'];
-const WEBHOOK_URL = 'https://n8n-kkdq.onrender.com/webhook-test/7da40efb-5ac9-487d-8109-f4542bc49ebe';
+const WEBHOOK_URL = 'https://your-n8n-url/webhook-path';
 
 async function scanAndPost() {
   let browser = null;
@@ -15,17 +15,20 @@ async function scanAndPost() {
     browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath,
-     headless: chromium.headless,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
-    await page.goto('https://x.com/search?q=web3&f=live', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://x.com/search?q=web3&f=live', {
+      waitUntil: 'domcontentloaded',
+    });
+
     await page.waitForSelector('article div[lang]', { timeout: 5000 });
 
     const tweets = await page.
     
 eval('article div[lang]', nodes =>
-      nodes.map(node => ({ text: node.innerText }))
+nodes.map(node => ({ text: node.innerText }))
     );
 
     const filtered = tweets.filter(t =>
@@ -40,22 +43,22 @@ eval('article div[lang]', nodes =>
       });
     }
 
-   try {
-  console.log(`Sent ${filtered.length} tweets.`);
-  return { status: 'ok', sent: filtered.length };
-} catch (err) {
-  console.error("Error during scan:", err.message);
-  return { status: "error", message: err.message };
-} finally {
-  if (browser) await browser.close();
-}
+    console.log(`Sent filtered.length tweets.`);
+    return  status: 'ok', sent: filtered.length ;
+   catch (err) 
+    console.error('Error during scan:', err.message);
+    return  status: 'error', message: err.message ;
+   finally 
+    if (browser) await browser.close();
+  
 
-
+// 🟢 Route to trigger from n8n
 app.post('/scan', async (req, res) => 
   const result = await scanAndPost();
   res.json(result);
 );
 
+// 🌐 Server start
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => 
   console.log(`Bot listening on{PORT}`);
