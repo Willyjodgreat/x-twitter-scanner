@@ -44,7 +44,7 @@ nodes.map(node => ({ text: node.innerText }))
     }
 
     console.log(`Sent filtered.length tweets.`);
-    return  status: 'ok', sent: filtered.length ;
+    return { status: 'ok', sent: filtered.length }; 
    catch (err) 
     console.error('Error during scan:', err.message);
     return  status: 'error', message: err.message ;
