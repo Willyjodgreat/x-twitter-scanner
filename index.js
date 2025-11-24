@@ -1,32 +1,78 @@
-import express from 'express';
-import puppeteer from 'puppeteer';
+const puppeteer = require('puppeteer');
+const axios = require('axios');
 
-const app = express();
-app.use(express.json());
+const WEBHOOK_URL = 'https://n8n-kkdq.onrender.com/webhook-test/7da40efb-5ac9-487d-8109-f4542bc49ebe';
+const KEYWORDS = ['web3', 'ai'];
+const MAX_BATCH_SIZE = 10;
+const DELAY_MS = 10000; // 10 seconds delay between batches
 
-app.get('/scan', async (req, res) => {
-  const tweetUrl = req.query.url;
-  if (!tweetUrl) return res.status(400).send("❌ Missing tweet URL");
+// Optional proxy support — leave empty if none
+const PROXY = ''; // e.g. 'http://username:password@proxyserver:port'
 
+const SEEN_TWEETS = new Set();
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function scrapeTweets(page) {
+  return page.
+    
+eval('article', articles =>
+    articles.map(article => {
+      const text = article.innerText;
+      const author = article.querySelector('a[href*="/"] > div > div > span')?.innerText || 'unknown';
+      const link = [...article.querySelectorAll('a')]
+        .map(a => a.href)
+        .find(href => href.includes('/status/'));
+      return { text, author, link };
+    })
+  );
+}
+
+async function sendBatch(batch) {
   try {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+    await axios.post(WEBHOOK_URL, { tweets: batch });
+    console.log(`Sent batch of ${batch.length} tweets`);
+  } catch (error) {
+console.error('Error sending batch:', error.message);
+  
 
-    await page.goto(tweetUrl, { waitUntil: 'networkidle2' });
+async function runBot() 
+  const launchOptions = PROXY ?  headless: 'new', args: [`–proxy-server={PROXY}`] } : { headless: 'new' };
+  const browser = await puppeteer.launch(launchOptions);
+  const page = await browser.newPage();
 
-    const tweetText = await page.evaluate(() => {
-      const tweet = document.querySelector('div[data-testid="tweetText"]');
-      return tweet ? tweet.innerText : null;
-    });
+  await page.goto('https://x.com/search?q=web3&f=live', { waitUntil: 'domcontentloaded' });
 
-    await browser.close();
+  let tweets = await scrapeTweets(page);
 
-    if (!tweetText) return res.status(404).send("❌ Couldn't find tweet content");
+  // Filter by keywords and skip seen tweets
+  tweets = tweets.filter(tweet =>
+    tweet.link &&
+    !SEEN_TWEETS.has(tweet.link) &&
+    KEYWORDS.some(keyword => tweet.text.toLowerCase().includes(keyword))
+  );
 
-    res.json({ tweetText });
-  } catch (err) {
-    res.status(500).send("❌ Error: " + err.message);
+  // Mark these tweets as seen
+  tweets.forEach(tweet => SEEN_TWEETS.add(tweet.link));
+
+  // Send tweets in batches
+  for (let i = 0; i < tweets.length; i += MAX_BATCH_SIZE) {
+    const batch = tweets.slice(i, i + MAX_BATCH_SIZE).map(t => ({
+      tweetId: t.link.split('/status/')[1],
+      text: t.text,
+      author: t.author
+    }));
+    await sendBatch(batch);
+
+    if (i + MAX_BATCH_SIZE < tweets.length) {
+      console.log(`Waiting ${DELAY_MS / 1000}s before sending next batch...`);
+      await delay(DELAY_MS);
+    }
   }
-});
 
-app.listen(3000, () => console.log("🟢 Scraper running on port 3000"));
+  await browser.close();
+}
+
+runBot().catch(console.error);
