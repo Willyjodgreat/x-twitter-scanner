@@ -47,7 +47,12 @@ eval('article div[lang]', nodes =>
   sent: filtered.length
 };
 
-   catch (err) 
+   {
+ catch (err) try
+} catch (err) {
+  console.error(err);
+}
+
     console.error("Error during scan:", err.message);
     return  status: 'error', message: err.message ;
    finally 
