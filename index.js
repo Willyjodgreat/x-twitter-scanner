@@ -40,15 +40,16 @@ eval('article div[lang]', nodes =>
       });
     }
 
-    console.log(`Sent filtered.length tweets.`);
-    return  status: 'ok', sent: filtered.length ;
+   try {
+  console.log(`Sent ${filtered.length} tweets.`);
+  return { status: 'ok', sent: filtered.length };
+} catch (err) {
+  console.error("Error during scan:", err.message);
+  return { status: "error", message: err.message };
+} finally {
+  if (browser) await browser.close();
+}
 
-   catch (err) 
-    console.error("Error during scan:", err.message);
-    return  status: "error", message: err.message ;
-   finally 
-    if (browser) await browser.close();
-  
 
 app.post('/scan', async (req, res) => 
   const result = await scanAndPost();
