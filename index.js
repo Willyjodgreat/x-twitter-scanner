@@ -16,20 +16,29 @@ async function scanAndPost() {
 
  
 
-try {
-  browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: chromium.executablePath, // no await, no ()
-    headless: chromium.headless,
-  });
+const puppeteer = require('puppeteer'); // Ensure you have puppeteer imported
+const chromium = require('chrome-aws-lambda'); // Adjust this if necessary
 
-  // your code here
+(async () => {
+  let browser;
 
-} catch (error) {
-  console.error(error);
-} finally {
-  if (browser) await browser.close();
-}
+  try {
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath, // Make sure to await here
+      headless: chromium.headless,
+    });
+
+    // Your code here (e.g., opening a page, navigating, etc.)
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    if (browser) {
+      await browser.close(); // Ensure the browser closes if it was opened
+    }
+  }
+})();
 
 
     });
@@ -85,6 +94,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
 
 
