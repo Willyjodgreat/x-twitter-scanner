@@ -27,7 +27,8 @@ async function scanAndPost() {
 });
 
 
-    await page.waitForSelector('article div[lang]',  timeout: 5000 );
+await page.waitForSelector('article div[lang]', { timeout: 5000 });
+
 
     const tweets = await page.$eval('article div[lang]', nodes =>
       nodes.map(node => ({
@@ -71,4 +72,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
