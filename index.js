@@ -14,38 +14,11 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL;
 async function scanAndPost() {
   let browser = null;
 
- 
-
-const puppeteer = require('puppeteer'); // Ensure you have puppeteer imported
-const chromium = require('chrome-aws-lambda'); // Adjust this if necessary
-
-(async () => {
-  let browser;
-
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(), // Ensure to call it as a function
-      headless: chromium.headless, // This is usually true for AWS Lambda
-    });
-
-    const page = await browser.newPage(); // Open a new page
-    await page.goto('https://example.com'); // Replace with your URL
-
-    // Your additional code here
-
-  } catch (error) {
-    console.error('Error occurred:', error); // Log more specific error information
-  } finally {
-    if (browser) {
-      await browser.close(); // Ensure the browser closes if it was opened
-    }
-  }
-})();
-
-})();
-
-
+      executablePath: chromium.executablePath,
+      headless: chromium.headless
     });
 
     const page = await browser.newPage();
@@ -99,12 +72,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
-
-
-
-
-
-
-
-
 
