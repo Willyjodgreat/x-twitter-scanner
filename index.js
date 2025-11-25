@@ -39,9 +39,13 @@ await page.waitForSelector('article div[lang]', { timeout: 5000 });
     const filtered = tweets.filter(t =>
       KEYWORDS.some(k => t.text.toLowerCase().includes(k))
     );
-    for (let tweet of filtered.slice(0, 10)) 
-      await axios.post(WEBHOOK_URL, 
-      tweetId: Date.now(),
+   for (let tweet of filtered.slice(0, 10)) {
+  await axios.post(WEBHOOK_URL, {
+    tweetId: Date.now(),
+    // add other properties here
+  });
+}
+
 
         text: tweet.text,
         author: '@unknown'
@@ -73,6 +77,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
 
 
