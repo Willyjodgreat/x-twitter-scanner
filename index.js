@@ -25,19 +25,24 @@ const chromium = require('chrome-aws-lambda'); // Adjust this if necessary
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath, // Make sure to await here
-      headless: chromium.headless,
+      executablePath: await chromium.executablePath(), // Ensure to call it as a function
+      headless: chromium.headless, // This is usually true for AWS Lambda
     });
 
-    // Your code here (e.g., opening a page, navigating, etc.)
+    const page = await browser.newPage(); // Open a new page
+    await page.goto('https://example.com'); // Replace with your URL
+
+    // Your additional code here
 
   } catch (error) {
-    console.error(error);
+    console.error('Error occurred:', error); // Log more specific error information
   } finally {
     if (browser) {
       await browser.close(); // Ensure the browser closes if it was opened
     }
   }
+})();
+
 })();
 
 
@@ -94,6 +99,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
 
 
