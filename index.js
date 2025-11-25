@@ -15,10 +15,12 @@ async function scanAndPost() {
   let browser = null;
 
   try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-     executablePath: chromium.executablePath
-      headless: chromium.headless
+  const browser = await puppeteer.launch({
+  args: chromium.args,
+  executablePath: chromium.executablePath,
+  headless: chromium.headless,
+});
+
     });
 
     const page = await browser.newPage();
@@ -72,6 +74,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
 
 
