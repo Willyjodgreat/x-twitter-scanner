@@ -22,13 +22,11 @@ async function scanAndPost() {
     });
 
     const page = await browser.newPage();
-   await page.goto('https://x.com/search?q=web3&f=live', {
-  waitUntil: 'domcontentloaded'
-});
+    await page.goto('https://x.com/search?q=web3&f=live', {
+      waitUntil: 'domcontentloaded'
+    });
 
-
-await page.waitForSelector('article div[lang]', { timeout: 5000 });
-
+    await page.waitForSelector('article div[lang]', { timeout: 5000 });
 
     const tweets = await page.$eval('article div[lang]', nodes =>
       nodes.map(node => ({
@@ -39,20 +37,17 @@ await page.waitForSelector('article div[lang]', { timeout: 5000 });
     const filtered = tweets.filter(t =>
       KEYWORDS.some(k => t.text.toLowerCase().includes(k))
     );
-  await axios.post(WEBHOOK_URL, {
-  tweetId: Date.now(),
-  // other properties...
-});
 
-}
-
-
+    // axios.post should be INSIDE the try block
+    for (let tweet of filtered) { // Iterate through each tweet
+      await axios.post(WEBHOOK_URL, {
+        tweetId: Date.now(),
         text: tweet.text,
         author: '@unknown'
-      );
-    
+      });
+    }
 
-    console.log(`Sent{filtered.length} tweets.`);
+    console.log(`Sent ${filtered.length} tweets.`);
 
     return {
       status: 'ok',
@@ -77,8 +72,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
-
-
-
-
-
