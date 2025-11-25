@@ -15,19 +15,19 @@ async function scanAndPost() {
   let browser = null;
 
  try {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+ const browser = await puppeteer.launch({
+  args: chromium.args,
+  executablePath: chromium.executablePath, // No await, no ()
+  headless: chromium.headless,
+});
 
-  // your code
+  }); // your code here
 
 } catch (error) {
   console.error(error);
 } finally {
   if (browser) await browser.close();
-});
+}
 
     });
 
@@ -82,6 +82,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Bot listening on ${PORT}`);
 });
+
 
 
 
