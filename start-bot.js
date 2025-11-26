@@ -1,13 +1,28 @@
-require('dotenv').config(); // Load environment variables from .env
+require('dotenv').config();
+const express = require('express');
+const axios = require('axios');
 
-// Inject globals for dynamic keywords, search query, and webhook
-global.KEYWORDS = process.env.KEYWORDS?.split(',') || ['web3', 'ai'];
-global.SEARCH_QUERY = process.env.SEARCH_QUERY || 'web3';
-global.WEBHOOK_URL = process.env.WEBHOOK_URL;
+const app = express();
+app.use(express.json());
 
-// Run your existing bot
-try {
-  require('./williams.js'); // <- your hardcoded bot
-} catch (err) {
-  console.error('Error running williams.js:', err);
-}
+app.post('/start', async (req, res) => {
+  try {
+    const { keyword } = req.body;
+    if (!keyword) return res.status(400).json({ error: 'Missing keyword' });
+
+    // Call the original bot URL from env variables
+    const botUrl = process.env.BOT_URL;
+
+    const response = await axios.post(botUrl, { keyword });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Wrapper error:', error.message);
+    res.status(500).json({ error: 'Failed to call the bot' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Wrapper bot running on port ${PORT}`);
+});
