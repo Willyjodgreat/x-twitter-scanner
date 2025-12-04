@@ -52,22 +52,34 @@ app.post('/scan', async (req, res) => {
       
       // Send to webhook if configured
       if (WEBHOOK_URL) {
-        setTimeout(async () => {
-          try {
-            await axios.post(WEBHOOK_URL, {
-              keyword,
-              tweets: mockTweets,
-              timestamp: new Date().toISOString()
-            });
-            console.log(`📤 Sent ${mockTweets.length} tweets for ${keyword} to webhook`);
-          } catch (e) {
-            console.log('⚠️ Webhook error (non-critical):', e.message);
-          }
-        }, 100);
-      }
+       // Send to webhook if configured
+if (WEBHOOK_URL && tweets.length > 0) {
+  console.log('🔗 Attempting to send to webhook:', WEBHOOK_URL);
+  console.log('📦 Data being sent:', {
+    keyword: keyword,
+    tweet_count: tweets.length,
+    sample_tweet: tweets[0]?.text?.substring(0, 50)
+  });
+  
+  setTimeout(async () => {
+    try {
+      const response = await axios.post(WEBHOOK_URL, {
+        keyword,
+        tweets: tweets,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`✅ Webhook success! Status: ${response.status}`);
+      console.log(`📤 Sent ${tweets.length} tweets for ${keyword}`);
+    } catch (e) {
+      console.log('❌ Webhook ERROR DETAILS:');
+      console.log('- URL attempted:', WEBHOOK_URL);
+      console.log('- Error message:', e.message);
+      console.log('- Error code:', e.code);
+      console.log('- Response status:', e.response?.status);
+      console.log('- Response data:', e.response?.data);
     }
-    
-    // Update stats
+  }, 100);
+}
     stats.totalScans++;
     stats.totalTweets += results.reduce((sum, r) => sum + r.tweets_found, 0);
     stats.lastScan = new Date().toISOString();
@@ -223,3 +235,4 @@ app.listen(PORT, () => {
 🌐 Dashboard: http://localhost:${PORT}
   `);
 });
+
