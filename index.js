@@ -5,7 +5,7 @@ const axios = require('axios');
 const app = express();
 app.use(express.json());
 
-const KEYWORDS = process.env.KEYWORDS ? process.env.KEYWORDS.split(',') : ['web3', 'ai', 'crypto'];
+const KEYWORDS = process.env.KEYWORDS ? process.env.KEYWORDS.split(',') : ['web3', 'ai'];
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 // Simple in-memory storage
@@ -23,7 +23,7 @@ app.post('/scan', async (req, res) => {
     
     console.log(`🔍 Scanning: ${keywords.join(', ')}`);
     
-    // Simulate scanning (replace with actual scraping later)
+    // Simulate scanning
     for (const keyword of keywords) {
       // Mock tweets for now
       const mockTweets = [
@@ -50,36 +50,23 @@ app.post('/scan', async (req, res) => {
         tweets: mockTweets
       });
       
-      // Send to webhook if configured
-      if (WEBHOOK_URL) {
-       // Send to webhook if configured
-if (WEBHOOK_URL && tweets.length > 0) {
-  console.log('🔗 Attempting to send to webhook:', WEBHOOK_URL);
-  console.log('📦 Data being sent:', {
-    keyword: keyword,
-    tweet_count: tweets.length,
-    sample_tweet: tweets[0]?.text?.substring(0, 50)
-  });
-  
-  setTimeout(async () => {
-    try {
-      const response = await axios.post(WEBHOOK_URL, {
-        keyword,
-        tweets: tweets,
-        timestamp: new Date().toISOString()
-      });
-      console.log(`✅ Webhook success! Status: ${response.status}`);
-      console.log(`📤 Sent ${tweets.length} tweets for ${keyword}`);
-    } catch (e) {
-      console.log('❌ Webhook ERROR DETAILS:');
-      console.log('- URL attempted:', WEBHOOK_URL);
-      console.log('- Error message:', e.message);
-      console.log('- Error code:', e.code);
-      console.log('- Response status:', e.response?.status);
-      console.log('- Response data:', e.response?.data);
+      // Optional: Send to webhook
+      // Comment this out if you don't have a webhook URL
+      if (WEBHOOK_URL && mockTweets.length > 0) {
+        try {
+          await axios.post(WEBHOOK_URL, {
+            keyword,
+            tweets: mockTweets,
+            timestamp: new Date().toISOString()
+          });
+          console.log(`📤 Sent ${mockTweets.length} tweets for ${keyword} to webhook`);
+        } catch (webhookError) {
+          console.log('⚠️ Webhook error (non-critical):', webhookError.message);
+        }
+      }
     }
-  }, 100);
-}
+    
+    // Update stats
     stats.totalScans++;
     stats.totalTweets += results.reduce((sum, r) => sum + r.tweets_found, 0);
     stats.lastScan = new Date().toISOString();
@@ -235,4 +222,3 @@ app.listen(PORT, () => {
 🌐 Dashboard: http://localhost:${PORT}
   `);
 });
-
