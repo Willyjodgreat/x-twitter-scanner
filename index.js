@@ -1,56 +1,19 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { execSync } = require('child_process');
 
 const app = express();
 app.use(express.json());
 
-const KEYWORDS = process.env.KEYWORDS ? process.env.KEYWORDS.split(',') : ['web3', 'ai'];
+const KEYWORDS = process.env.KEYWORDS ? process.env.KEYWORDS.split(',') : ['web3', 'ai', 'crypto'];
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
-// Function to check if puppeteer is available
-let puppeteer;
-let chromium;
-
-async function getPuppeteer() {
-  try {
-    // Try to load puppeteer dynamically
-    puppeteer = require('puppeteer-core');
-    chromium = require('chrome-aws-lambda');
-    console.log('✅ Loaded puppeteer-core and chrome-aws-lambda');
-    return { puppeteer, chromium };
-  } catch (error) {
-    console.log('⚠️ Using fallback method (no browser)');
-    return null;
-  }
-}
-
-// Alternative: Use fetch API via axios (lightweight)
-async function scanWithAPI(keyword) {
-  try {
-    console.log(`🌐 Scanning ${keyword} via API...`);
-    
-    // You can use a third-party Twitter API service here
-    // Or use a simpler fetch approach
-    
-    // For now, simulate getting tweets
-    const mockTweets = [
-      { text: `Latest news about ${keyword} is trending!`, author: '@trending' },
-      { text: `Breaking: New development in ${keyword} space`, author: '@news' }
-    ];
-    
-    return {
-      success: true,
-      keyword,
-      tweets: mockTweets.slice(0, 5) // Return 5 mock tweets
-    };
-    
-  } catch (error) {
-    console.error('API scan error:', error);
-    return { success: false, error: error.message };
-  }
-}
+// Simple in-memory storage
+let stats = {
+  totalScans: 0,
+  totalTweets: 0,
+  lastScan: null
+};
 
 // Main scan endpoint
 app.post('/scan', async (req, res) => {
@@ -58,94 +21,64 @@ app.post('/scan', async (req, res) => {
     const keywords = req.body.keywords || KEYWORDS;
     const results = [];
     
-    console.log(`🔍 Starting scan for: ${keywords.join(', ')}`);
+    console.log(`🔍 Scanning: ${keywords.join(', ')}`);
     
-    // Try browser method first
-    let browserMethod = true;
-    
-    if (browserMethod) {
-      // Try to use puppeteer if available
-      const puppeteerLib = await getPuppeteer();
-      
-      if (puppeteerLib) {
-        try {
-          const { puppeteer, chromium } = puppeteerLib;
-          const executablePath = await chromium.executablePath;
-          
-          const browser = await puppeteer.launch({
-            args: chromium.args,
-            executablePath: executablePath,
-            headless: chromium.headless
-          });
-          
-          const page = await browser.newPage();
-          
-          for (const keyword of keywords) {
-            await page.goto(`https://x.com/search?q=${encodeURIComponent(keyword)}`, {
-              waitUntil: 'domcontentloaded',
-              timeout: 10000
-            });
-            
-            await page.waitForTimeout(3000);
-            
-            const tweets = await page.evaluate(() => {
-              const articles = document.querySelectorAll('article');
-              return Array.from(articles).slice(0, 5).map(article => ({
-                text: article.innerText.substring(0, 200) + '...',
-                timestamp: new Date().toISOString()
-              }));
-            });
-            
-            results.push({
-              keyword,
-              success: true,
-              tweets_found: tweets.length,
-              tweets: tweets
-            });
-            
-            // Send to webhook
-            if (WEBHOOK_URL && tweets.length > 0) {
-              setTimeout(() => {
-                axios.post(WEBHOOK_URL, {
-                  keyword,
-                  tweets: tweets
-                }).catch(e => console.log('Webhook error:', e.message));
-              }, 100);
-            }
-            
-            // Small delay between keywords
-            if (keyword !== keywords[keywords.length - 1]) {
-              await page.waitForTimeout(2000);
-            }
-          }
-          
-          await browser.close();
-          
-        } catch (browserError) {
-          console.log('❌ Browser method failed, using API fallback');
-          browserMethod = false;
+    // Simulate scanning (replace with actual scraping later)
+    for (const keyword of keywords) {
+      // Mock tweets for now
+      const mockTweets = [
+        { 
+          text: `New development in ${keyword} happening right now!`, 
+          author: '@technews', 
+          timestamp: new Date().toISOString() 
+        },
+        { 
+          text: `Breaking: Major update in ${keyword} ecosystem`, 
+          author: '@updatebot', 
+          timestamp: new Date().toISOString() 
+        },
+        { 
+          text: `Why ${keyword} is changing the industry`, 
+          author: '@industryexpert', 
+          timestamp: new Date().toISOString() 
         }
+      ];
+      
+      results.push({
+        keyword,
+        tweets_found: mockTweets.length,
+        tweets: mockTweets
+      });
+      
+      // Send to webhook if configured
+      if (WEBHOOK_URL) {
+        setTimeout(async () => {
+          try {
+            await axios.post(WEBHOOK_URL, {
+              keyword,
+              tweets: mockTweets,
+              timestamp: new Date().toISOString()
+            });
+            console.log(`📤 Sent ${mockTweets.length} tweets for ${keyword} to webhook`);
+          } catch (e) {
+            console.log('⚠️ Webhook error (non-critical):', e.message);
+          }
+        }, 100);
       }
     }
     
-    // If browser failed or not available, use API method
-    if (!browserMethod) {
-      for (const keyword of keywords) {
-        const result = await scanWithAPI(keyword);
-        results.push(result);
-      }
-    }
-    
-    // Calculate totals
-    const totalTweets = results.reduce((sum, r) => sum + (r.tweets_found || r.tweets?.length || 0), 0);
+    // Update stats
+    stats.totalScans++;
+    stats.totalTweets += results.reduce((sum, r) => sum + r.tweets_found, 0);
+    stats.lastScan = new Date().toISOString();
     
     res.json({
       status: 'complete',
-      timestamp: new Date().toISOString(),
-      method: browserMethod ? 'browser' : 'api',
+      timestamp: stats.lastScan,
       total_keywords: keywords.length,
-      total_tweets: totalTweets,
-      results: results
+      total_tweets: results.reduce((sum, r) => sum + r.tweets_found, 0),
+      results: results,
+      note: 'Using mock data. Add puppeteer for real scraping.'
     });
     
   } catch (error) {
@@ -161,59 +94,118 @@ app.post('/scan', async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
-    version: '2.0',
+    version: '1.0',
     keywords: KEYWORDS,
+    stats: stats,
     webhook_configured: !!WEBHOOK_URL,
     timestamp: new Date().toISOString()
   });
 });
 
-// Simple HTML dashboard
+// Simple dashboard
 app.get('/', (req, res) => {
   res.send(`
     <html>
       <style>
-        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
-        .card { background: #f5f5f5; padding: 20px; border-radius: 10px; margin: 10px 0; }
-        button { background: #1DA1F2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { font-family: Arial; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #1DA1F2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat { background: #f8f9fa; padding: 10px; border-radius: 5px; }
       </style>
       <body>
-        <h1>🐦 X/Twitter Scraper Bot</h1>
-        <div class="card">
-          <h3>📊 Status: <span style="color: green;">Active</span></h3>
-          <p>🔑 Keywords: ${KEYWORDS.join(', ')}</p>
-          <p>🎯 Target: 500 tweets/day</p>
-          <p>⏰ Scans: Every 30 minutes</p>
+        <div style="max-width: 800px; margin: 0 auto;">
+          <h1>🐦 X/Twitter Scraper Bot</h1>
+          
+          <div class="card">
+            <h3>📊 Status Dashboard</h3>
+            <div class="stats">
+              <div class="stat">
+                <strong>Total Scans:</strong><br>
+                <span id="totalScans">${stats.totalScans}</span>
+              </div>
+              <div class="stat">
+                <strong>Total Tweets:</strong><br>
+                <span id="totalTweets">${stats.totalTweets}</span>
+              </div>
+              <div class="stat">
+                <strong>Last Scan:</strong><br>
+                <span id="lastScan">${stats.lastScan || 'Never'}</span>
+              </div>
+              <div class="stat">
+                <strong>Keywords:</strong><br>
+                ${KEYWORDS.join(', ')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>⚡ Quick Actions</h3>
+            <button onclick="scanNow()">🔍 Scan Now</button>
+            <button onclick="checkHealth()" style="background: #28a745;">🏥 Health Check</button>
+            <button onclick="updateStats()" style="background: #6c757d;">🔄 Refresh Stats</button>
+          </div>
+          
+          <div class="card">
+            <h3>📝 Logs</h3>
+            <div id="logs" style="background: #f8f9fa; padding: 10px; border-radius: 5px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <h3>⚡ Quick Actions</h3>
-          <button onclick="scanNow()">🔍 Scan Now</button>
-          <button onclick="checkHealth()">🏥 Health Check</button>
-          <a href="/health" style="margin-left: 10px; color: #1DA1F2;">View JSON</a>
-        </div>
+        
         <script>
+          function log(message) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML = '[' + new Date().toLocaleTimeString() + '] ' + message + '<br>' + logs.innerHTML;
+          }
+          
           async function scanNow() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'Scanning...';
+            btn.innerHTML = '⏳ Scanning...';
+            log('Starting scan...');
             
-            const res = await fetch('/scan', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const data = await res.json();
-            alert('Scan complete! Found ' + data.total_tweets + ' tweets');
+            try {
+              const res = await fetch('/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              
+              const data = await res.json();
+              log('Scan complete: ' + data.total_tweets + ' tweets found');
+              alert('✅ Scan complete! Found ' + data.total_tweets + ' tweets');
+              
+              updateStats();
+            } catch (error) {
+              log('❌ Scan failed: ' + error.message);
+              alert('Scan failed: ' + error.message);
+            }
             
             btn.disabled = false;
-            btn.textContent = '🔍 Scan Now';
+            btn.innerHTML = '🔍 Scan Now';
           }
           
           async function checkHealth() {
+            log('Checking health...');
             const res = await fetch('/health');
             const data = await res.json();
-            alert('Bot is ' + data.status + '\\nKeywords: ' + data.keywords.join(', '));
+            log('Health: ' + data.status);
+            alert('✅ Bot is ' + data.status + '\\nKeywords: ' + data.keywords.join(', '));
           }
+          
+          async function updateStats() {
+            const res = await fetch('/health');
+            const data = await res.json();
+            
+            document.getElementById('totalScans').textContent = data.stats.totalScans;
+            document.getElementById('totalTweets').textContent = data.stats.totalTweets;
+            document.getElementById('lastScan').textContent = data.stats.lastScan || 'Never';
+            
+            log('Stats updated');
+          }
+          
+          // Auto-refresh stats every 30 seconds
+          setInterval(updateStats, 30000);
         </script>
       </body>
     </html>
@@ -226,6 +218,7 @@ app.listen(PORT, () => {
 🔥 X Scraper Bot Started!
 📍 Port: ${PORT}
 🔑 Keywords: ${KEYWORDS.join(', ')}
+🎯 Target: ~500 tweets/day
 🏥 Health: http://localhost:${PORT}/health
 🌐 Dashboard: http://localhost:${PORT}
   `);
