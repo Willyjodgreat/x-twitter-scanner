@@ -1,16 +1,19 @@
 {
-  "name": "x-scraper-simple",
+  "name": "twitter-scraper-bot",
   "version": "1.0.0",
+  "description": "Real Twitter scraper bot for finding reply opportunities",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "axios": "^1.6.0",
     "dotenv": "^16.0.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.0.0"
   }
 }
